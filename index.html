@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>labs.experata.ai</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    /* paper (default) */
+    --bg:        #efe8d7;
+    --bg-soft:   #f4efe4;
+    --ink:       #2a2620;
+    --ink-soft:  #58503f;
+    --muted:     #8a7f6e;
+    --rule:      #d9cfbc;
+    --accent:    #c23b22;
+    --accent-dim:#a64528;
+    --selection: #e8d9a8;
+    --chrome:    #e4dcc6;
+    --dot-r:     #c97a6b;
+    --dot-y:     #d9b566;
+    --dot-g:     #9cb37a;
+    --shadow:    0 1px 0 rgba(0,0,0,.03), 0 20px 40px -24px rgba(42,38,32,.18);
+    --noise-op:  .035;
+  }
+  :root[data-theme="green"] {
+    --bg:#0b1210; --bg-soft:#0e1714; --ink:#8fe3a0; --ink-soft:#57a66a; --muted:#3e7a4c;
+    --rule:#1b2a22; --accent:#c4ffb0; --accent-dim:#8fe3a0; --selection:#1e3a28;
+    --chrome:#0e1714; --dot-r:#6fae7e; --dot-y:#5a9a6c; --dot-g:#4f8a5f;
+    --shadow:none; --noise-op:.05;
+  }
+  :root[data-theme="amber"] {
+    --bg:#140c04; --bg-soft:#1a1107; --ink:#ffb74a; --ink-soft:#c98a2e; --muted:#7a5519;
+    --rule:#2a1d0a; --accent:#ffd98a; --accent-dim:#ffb74a; --selection:#3a2a10;
+    --chrome:#1a1107; --dot-r:#c98a2e; --dot-y:#a56f21; --dot-g:#7a5519;
+    --shadow:none; --noise-op:.05;
+  }
+  :root[data-theme="white"] {
+    --bg:#0a0a0a; --bg-soft:#111111; --ink:#ededed; --ink-soft:#a8a8a8; --muted:#6a6a6a;
+    --rule:#1f1f1f; --accent:#ffffff; --accent-dim:#d0d0d0; --selection:#2a2a2a;
+    --chrome:#111111; --dot-r:#6a6a6a; --dot-y:#4a4a4a; --dot-g:#3a3a3a;
+    --shadow:none; --noise-op:.03;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    font-feature-settings: "calt" 0;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+    min-height: 100vh;
+  }
+  ::selection { background: var(--selection); color: var(--ink); }
+
+  /* subtle paper grain */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: var(--noise-op);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    z-index: 1;
+  }
+
+  /* ---------- page ---------- */
+  .page {
+    max-width: 840px;
+    margin: 0 auto;
+    padding: 56px 28px 120px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* window chrome */
+  .window {
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--chrome);
+    border-bottom: 1px solid var(--rule);
+  }
+  .chrome .dots { display: flex; gap: 6px; }
+  .chrome .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--dot-r);
+    border: 1px solid rgba(0,0,0,.06);
+  }
+  .chrome .dot:nth-child(2) { background: var(--dot-y); }
+  .chrome .dot:nth-child(3) { background: var(--dot-g); }
+  .chrome .title {
+    flex: 1; text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: .02em;
+  }
+  .chrome .title b { color: var(--ink-soft); font-weight: 500; }
+  .chrome .meta { color: var(--muted); font-size: 12px; }
+
+  .body {
+    padding: 34px 40px 40px;
+  }
+
+  /* ---------- terminal primitives ---------- */
+  .line { display: block; }
+  .prompt {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-top: 28px;
+    margin-bottom: 10px;
+  }
+  .prompt:first-child { margin-top: 0; }
+  .prompt .sigil { color: var(--accent); user-select: none; flex-shrink: 0; }
+  .prompt .cmd   { color: var(--ink); }
+  .prompt .cmd .flag { color: var(--ink-soft); }
+  .prompt .cmd .arg  { color: var(--accent-dim); }
+
+  .out {
+    color: var(--ink-soft);
+    padding-left: 22px;
+    border-left: 1px dashed var(--rule);
+    margin-left: 4px;
+  }
+  .out p { margin: 0 0 10px 0; }
+  .out p:last-child { margin-bottom: 0; }
+  .out .k { color: var(--ink); }
+
+  .rule {
+    border: 0;
+    border-top: 1px dashed var(--rule);
+    margin: 36px 0;
+  }
+
+  /* placeholders */
+  .ph {
+    display: inline-block;
+    padding: 1px 8px;
+    border: 1px dashed var(--rule);
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    border-radius: 2px;
+    letter-spacing: .02em;
+  }
+  .ph.block {
+    display: block;
+    padding: 10px 12px;
+    margin: 6px 0;
+  }
+
+  /* ascii header */
+  .ascii {
+    white-space: pre;
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1.15;
+    letter-spacing: 0;
+    margin: 4px 0 18px;
+    overflow-x: auto;
+  }
+  .ascii .hl { color: var(--accent); }
+  .tagline-row {
+    display: flex;
+    gap: 14px;
+    align-items: baseline;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  .tagline-row b { color: var(--ink); font-weight: 500; }
+
+  /* app / package cards */
+  .card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 14px 20px;
+    padding: 16px 18px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-top: 10px;
+    background: transparent;
+  }
+  .card .name {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 15px;
+    letter-spacing: -.01em;
+  }
+  .card .name .ver {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 12px;
+    margin-left: 8px;
+  }
+  .card .desc {
+    grid-column: 1 / -1;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+  .card .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    grid-column: 1 / -1;
+    margin-top: 2px;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 1px 7px;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+    border-radius: 2px;
+  }
+  .tag.on { color: var(--accent); border-color: var(--accent); }
+  .card .link {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+    border-bottom: 1px solid transparent;
+  }
+  .card .link:hover { border-bottom-color: var(--accent); }
+
+  .card .status {
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+    letter-spacing: .02em;
+    align-self: start;
+  }
+  .card .status::first-letter { color: var(--accent); }
+
+  /* screenshot figure inside a card */
+  .screenshot {
+    grid-column: 1 / -1;
+    margin: 6px 0 2px;
+  }
+  .screenshot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--bg);
+  }
+  .screenshot figcaption {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .02em;
+  }
+
+  /* knightmare card: description on left, screenshot on right */
+  .knightmare-card {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+    gap: 18px 24px;
+  }
+  .knightmare-card .name { grid-column: 1 / 2; white-space: nowrap; }
+  .knightmare-card .status { grid-column: 2 / 3; justify-self: end; white-space: nowrap; }
+  .knightmare-card .desc { grid-column: 1 / 2; align-self: start; }
+  .knightmare-card .tags { grid-column: 1 / -1; flex-wrap: nowrap; overflow: hidden; }
+  .knightmare-card .screenshot {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    margin: 0;
+    align-self: stretch;
+  }
+  .knightmare-card .screenshot img { height: 100%; object-fit: cover; object-position: top left; }
+
+  @media (max-width: 680px) {
+    .knightmare-card { grid-template-columns: 1fr; }
+    .knightmare-card .name,
+    .knightmare-card .status,
+    .knightmare-card .desc,
+    .knightmare-card .tags,
+    .knightmare-card .screenshot { grid-column: 1 / -1; grid-row: auto; }
+    .knightmare-card .status { justify-self: start; }
+    .knightmare-card .screenshot img { height: auto; object-fit: contain; }
+  }
+
+  /* install block (npm) */
+  .install {
+    margin-top: 12px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .install .tab {
+    display: flex;
+    border-bottom: 1px solid var(--rule);
+    background: var(--chrome);
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .install .tab span {
+    padding: 6px 12px;
+    border-right: 1px solid var(--rule);
+  }
+  .install .tab span.active { color: var(--ink); background: var(--bg-soft); }
+  .install pre {
+    margin: 0;
+    padding: 12px 14px;
+    color: var(--ink);
+    font-size: 13px;
+    white-space: pre-wrap;
+  }
+  .install pre .c { color: var(--accent); }
+  .install pre .m { color: var(--muted); }
+
+  /* commands listing under npm */
+  .cmds {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 22px;
+    font-size: 13px;
+  }
+  .cmds dt { color: var(--accent); }
+  .cmds dd { margin: 0; color: var(--ink-soft); }
+
+  /* contact row */
+  .contact {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 8px 20px;
+    font-size: 13px;
+  }
+  .contact dt { color: var(--muted); }
+  .contact dd { margin: 0; }
+
+  /* footer */
+  .foot {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: .02em;
+  }
+  .caret {
+    display: inline-block;
+    width: .55em; height: 1em;
+    background: var(--ink);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink 1.1s steps(2, end) infinite;
+  }
+  @keyframes blink { 50% { background: transparent; } }
+
+  /* ---------- tweaks panel ---------- */
+  .tweaks {
+    position: fixed;
+    right: 20px; bottom: 20px;
+    z-index: 10;
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 12px 14px;
+    box-shadow: 0 20px 40px -20px rgba(0,0,0,.3);
+    display: none;
+    min-width: 220px;
+  }
+  .tweaks.on { display: block; }
+  .tweaks h4 {
+    margin: 0 0 10px 0;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .sw {
+    appearance: none; border: 1px solid var(--rule);
+    padding: 0; height: 34px;
+    border-radius: 3px; cursor: pointer;
+    font-family: inherit; font-size: 10px;
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .sw[data-t="paper"] { background: #efe8d7; color: #2a2620; }
+  .sw[data-t="green"] { background: #0b1210; color: #8fe3a0; }
+  .sw[data-t="amber"] { background: #140c04; color: #ffb74a; }
+  .sw[data-t="white"] { background: #0a0a0a; color: #ededed; }
+  .sw.sel { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* mobile */
+  @media (max-width: 620px) {
+    .page { padding: 24px 14px 80px; }
+    .body { padding: 22px 18px 26px; }
+    .ascii { font-size: 9px; }
+    .chrome .title { display: none; }
+    .contact { grid-template-columns: 64px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="window" role="main">
+    <div class="chrome">
+      <div class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div>
+      <div class="title"><b>labs.experata.ai</b> &nbsp;—&nbsp; zsh &nbsp;—&nbsp; 80×24</div>
+      <div class="meta" id="last-updated">last updated: 2026-04-22</div>
+    </div>
+
+    <div class="body">
+
+      <!-- ASCII brand -->
+<pre class="ascii" aria-hidden="true">  _         _                     _                  _
+ | |   __ _| |__   ___  _ __ __ _| |_ ___  _ __(_) ___  ___
+ | |  / _` | '_ \ / _ \| '__/ _` | __/ _ \| '__| |/ _ \/ __|
+ | |_| (_| | |_) | (_) | | | (_| | || (_) | |  | |  __/\__ \
+ |_____\__,_|_.__/ \___/|_|  \__,_|\__\___/|_|  |_|\___||___/
+</pre>
+
+      <div class="tagline-row">
+      </div>
+
+      <hr class="rule" />
+
+      <!-- apps -->
+      <div class="prompt">
+        <span class="sigil">$</span>
+        <span class="cmd">ls <span class="flag">-l</span> <span class="arg">apps/</span></span>
+      </div>
+      <div class="out">
+        <p style="color:var(--muted); font-size:12px; margin-bottom:4px;">total 1</p>
+
+        <div class="card knightmare-card">
+          <div class="name">Knightmare <span class="ver">desktop · macOS / Windows / Linux</span></div>
+          <span class="status">● in development</span>
+          <div class="desc">
+            A full-featured chess application built with
+            <span class="k">React</span> and <span class="k">Redux Toolkit</span>,
+            packaged as a native desktop app via <span class="k">Tauri</span>.
+            Challenge a dual AI engine (JavaScript or Rust/WASM), analyze moves with
+            evaluation breakdowns, and replay games.
+          </div>
+          <figure class="screenshot">
+            <img src="assets/knightmare.png" alt="Knightmare desktop app — mid-game screenshot" loading="lazy" />
+          </figure>
+          <div class="tags">
+            <span class="tag on">chess</span>
+            <span class="tag on">tauri</span>
+            <span class="tag">react</span>
+            <span class="tag">redux-toolkit</span>
+            <span class="tag">rust-wasm</span>
+            <span class="tag">dual-engine</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- packages -->
+      <div class="prompt">
+        <span class="sigil">$</span>
+        <span class="cmd">npm view <span class="arg">v23cc</span></span>
+      </div>
+      <div class="out">
+        <div class="card">
+          <div class="name">v23cc <span class="ver" id="v23cc-ver">npm · MIT</span></div>
+          <a class="link" href="https://github.com/jsveron23/v23cc" target="_blank" rel="noopener">github ↗</a>
+          <div class="desc">
+            A set of Claude Code slash commands that offload repetitive tasks to a
+            <span class="k">local LLM</span> — no cloud API calls, no tokens spent on boilerplate.
+            <br /><br />
+            Instead of asking Claude to summarize a video or draft a commit message
+            (burning context and API quota), v23cc pipes the work to a locally running
+            model (e.g. <span class="k">Gemma</span> via <span class="k">mlx-lm</span>).
+            Claude stays focused on what it's good at; the local model handles the grunt work.
+          </div>
+          <div class="tags">
+            <span class="tag on">claude-code</span>
+            <span class="tag on">local-llm</span>
+            <span class="tag">mlx-lm</span>
+            <span class="tag">slash-commands</span>
+            <span class="tag">zero-api-cost</span>
+          </div>
+        </div>
+
+        <div class="install" aria-label="install">
+          <div class="tab">
+            <span class="active">npm</span><span>pnpm</span><span>yarn</span><span>bun</span>
+          </div>
+<pre><span class="m">#</span> global install (works in every project)
+<span class="c">$</span> npx v23cc@latest --global
+
+<span class="m">#</span> or local to one repo (requires .claude/)
+<span class="c">$</span> npx v23cc@latest --local
+
+<span class="m">#</span> custom namespace → /wp:commit, /wp:pr, …
+<span class="c">$</span> npx v23cc@latest --local --namespace wp</pre>
+        </div>
+
+        <dl class="cmds">
+          <dt>/v23cc:model</dt>     <dd>manage which local model preset is active</dd>
+          <dt>/v23cc:config</dt>    <dd>show config list</dd>
+          <dt>/v23cc:youtube</dt>   <dd>fetch subtitles and summarize a YouTube video in any language</dd>
+          <dt>/v23cc:commit</dt>    <dd>generate a git commit message from staged changes</dd>
+          <dt>/v23cc:sync-docs</dt> <dd>update README.md and CLAUDE.md using the local LLM</dd>
+          <dt>/v23cc:branch</dt>    <dd>create, switch, rename, track, or list git branches</dd>
+          <dt>/v23cc:pr</dt>        <dd>generate a PR title and description from branch diff</dd>
+          <dt>/v23cc:atlassian</dt> <dd>set up Jira &amp; Confluence credentials</dd>
+          <dt>/v23cc:jira</dt>      <dd>analyze a Jira issue and suggest an implementation approach</dd>
+        </dl>
+
+        <p style="margin-top:18px; color:var(--muted); font-size:12px;">
+          plus <span class="k" style="color:var(--ink)">Atlassian MCP</span> — search Jira &amp; Confluence
+          directly inside Claude Code via a local MCP server. no slash command needed.
+        </p>
+
+        <p style="margin-top:14px; color:var(--muted); font-size:12px;">
+          requires Node ≥ 18, Python 3, and a local OpenAI-compatible LLM server
+          (e.g. <span class="k" style="color:var(--ink)">mlx-lm</span> on port 9000).
+        </p>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- contact -->
+      <div class="prompt">
+        <span class="sigil">$</span>
+        <span class="cmd">cat <span class="arg">contact.txt</span></span>
+      </div>
+      <div class="out">
+        <dl class="contact">
+          <dt>email</dt>   <dd><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6e1a0100172e0b161e0b1c0f1a0f400f07">[email&#160;protected]</a></dd>
+          <dt>github</dt>  <dd><a href="https://github.com/experata-ai" target="_blank" rel="noopener" style="color:var(--accent); text-decoration:none; border-bottom:1px solid transparent;" onmouseover="this.style.borderBottomColor='var(--accent)'" onmouseout="this.style.borderBottomColor='transparent'">github.com/experata-ai</a></dd>
+        </dl>
+      </div>
+
+      <hr class="rule" />
+
+      <!-- final prompt -->
+      <div class="prompt" style="margin-top:28px;">
+        <span class="sigil">$</span>
+        <span class="cmd" style="color:var(--muted)">_<span class="caret"></span></span>
+      </div>
+
+      <div class="foot">
+        <span>© <span id="year">2026</span> &nbsp;·&nbsp; built with patience &amp; a terminal</span>
+        <span id="foot-hint"></span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ---------- tweaks panel ---------- -->
+<aside class="tweaks" id="tweaks" aria-label="Tweaks">
+  <h4>Color scheme</h4>
+  <div class="swatches" id="swatches">
+    <button class="sw" data-t="paper">paper</button>
+    <button class="sw" data-t="green">green</button>
+    <button class="sw" data-t="amber">amber</button>
+    <button class="sw" data-t="white">white</button>
+  </div>
+</aside>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ---------- live npm version + last-updated sync ----------
+  (async () => {
+    try {
+      const r = await fetch('https://registry.npmjs.org/v23cc/latest', { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const v = data.version;
+      if (v) {
+        const el = document.getElementById('v23cc-ver');
+        if (el) el.textContent = `npm · v${v} · MIT`;
+      }
+
+      // also sync "last updated" using the registry modified time
+      const r2 = await fetch('https://registry.npmjs.org/v23cc', { cache: 'no-store' });
+      if (r2.ok) {
+        const meta = await r2.json();
+        const modified = meta && meta.time && meta.time.modified;
+        if (modified) {
+          const d = new Date(modified);
+          const iso = d.toISOString().slice(0, 10);
+          const lu = document.getElementById('last-updated');
+          if (lu) lu.textContent = `last updated: ${iso}`;
+        }
+      }
+    } catch (_) { /* offline — keep fallback */ }
+  })();
+
+  // ---------- tweaks ----------
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "theme": "paper"
+  }/*EDITMODE-END*/;
+
+  const state = { ...TWEAK_DEFAULTS };
+  const root = document.documentElement;
+
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    document.querySelectorAll('#swatches .sw').forEach(b => {
+      b.classList.toggle('sel', b.dataset.t === t);
+    });
+  }
+  applyTheme(state.theme);
+
+  document.getElementById('swatches').addEventListener('click', (e) => {
+    const b = e.target.closest('.sw');
+    if (!b) return;
+    state.theme = b.dataset.t;
+    applyTheme(state.theme);
+    try {
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { theme: state.theme } }, '*');
+    } catch (_) {}
+  });
+
+  // ---------- edit-mode handshake (listener first, then announce) ----------
+  const panel = document.getElementById('tweaks');
+  let hostedInPreview = false;
+  window.addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.type === '__activate_edit_mode')   { hostedInPreview = true; panel.classList.add('on'); }
+    if (d.type === '__deactivate_edit_mode') panel.classList.remove('on');
+  });
+  try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch (_) {}
+
+  // When opened standalone (no preview host), always show the panel so users
+  // can still switch palettes.
+  const isStandalone = (window.parent === window) || (() => {
+    try { return !window.parent.location.href; } catch (_) { return false; }
+  })();
+  setTimeout(() => {
+    if (!hostedInPreview) {
+      panel.classList.add('on');
+      const hint = document.getElementById('foot-hint');
+      if (hint) hint.textContent = 'switch palette →';
+    }
+  }, 400);
+</script>
+
+</body>
+</html>
